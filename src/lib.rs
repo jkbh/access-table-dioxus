@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-
 use fake::Fake;
 use indexmap::IndexMap;
+
+pub mod table;
 
 pub struct Row {
     pub id: String,
@@ -13,15 +13,17 @@ pub struct User {
     pub id: String,
     pub name: String,
     pub properties: IndexMap<String, String>,
-    pub groups: HashMap<String, bool>,
+    pub groups: IndexMap<String, bool>,
 }
 
 pub fn create_mock_users(n_users: usize, n_groups: usize) -> Vec<User> {
-    let groups = (0..n_groups).map(|_| {
-        fake::faker::lorem::en::Words(2..4)
-            .fake::<Vec<String>>()
-            .join(" ")
-    });
+    let groups = (0..n_groups)
+        .map(|_| {
+            fake::faker::lorem::en::Words(2..4)
+                .fake::<Vec<String>>()
+                .join(" ")
+        })
+        .collect::<Vec<_>>();
 
     (0..n_users)
         .map(|_| User {
@@ -29,7 +31,8 @@ pub fn create_mock_users(n_users: usize, n_groups: usize) -> Vec<User> {
             name: fake::faker::name::de_de::Name().fake(),
             properties: IndexMap::new(),
             groups: groups
-                .clone()
+                .iter()
+                .cloned()
                 .enumerate()
                 .map(|(i, group)| {
                     (
