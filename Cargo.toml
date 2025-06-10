@@ -1,0 +1,34 @@
+[package]
+name = "dioxus-test"
+version = "0.1.0"
+authors = ["jkbh <jakob_h@outlook.de>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+dioxus = { version = "0.7.0-alpha.0", features = [] }
+fake = "4.3.0"
+getrandom = { version = "0.3", features = ["wasm_js"] }
+indexmap = "2.9.0"
+
+[features]
+default = ["desktop"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
+
+[target.wasm32-unknown-unknown]
+rustflags = ['--cfg', 'getrandom_backend="wasm_js"']
