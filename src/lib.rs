@@ -68,6 +68,7 @@ impl PropertyColumn {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
 pub struct GroupColumn {
     pub id: String,
     pub group: String,

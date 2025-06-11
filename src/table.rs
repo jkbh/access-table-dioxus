@@ -1,3 +1,5 @@
+use std::ops::{Range, RangeBounds};
+
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
 use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
@@ -36,7 +38,9 @@ pub fn Table(users: Vec<User>) -> Element {
                 ContextMenuItem {
                     index: 0usize,
                     value: "0",
-                    on_select: |value: String| {},
+                    on_select: |value: String| {
+                        println!("Selected: {}", value);
+                    },
                     "Move element"
                 }
             }
@@ -113,7 +117,7 @@ fn RowHeader(row_index: usize, children: Element) -> Element {
 
 #[component]
 fn GroupHeader(column_index: usize) -> Element {
-    let group_columns = use_context::<Signal<Vec<GroupColumn>>>();
+    let mut group_columns = use_context::<Signal<Vec<GroupColumn>>>();
     let mut selection = use_context::<Signal<Selection>>();
     let selected = use_memo(move || selection().is_column_selected(column_index));
 
@@ -132,6 +136,25 @@ fn GroupHeader(column_index: usize) -> Element {
             onmouseenter: move |_| {
                 if selection().state == DragState::Column {
                     selection.write().update_column_selection(column_index);
+                }
+            },
+            oncontextmenu: move |evt: MouseEvent| {
+                evt.prevent_default();
+                evt.stop_propagation();
+                let mut selection = selection.write();
+                if let Some(range) = selection.columns {
+                    let IndexRange { start, end } = range.sorted();
+                    if range.contains(column_index) {
+                        return;
+                    }
+                    let insertion_index = if column_index > end {
+                        column_index - range.length()
+                    } else {
+                        column_index
+                    };
+                    let mut columns = group_columns.write();
+                    reorder_elements(&mut columns, start..=end, insertion_index);
+                    selection.shift_column_selection_to(insertion_index);
                 }
             },
             "{group_columns.read()[column_index].id}"
@@ -247,6 +270,19 @@ impl Selection {
         }
     }
 
+    pub fn shift_column_selection_to(&mut self, to: usize) {
+        if let Some(range) = &mut self.columns {
+            let length = range.length();
+            range.start = to;
+            range.end = to + length;
+
+            self.cells = Some(IndexRect::new(
+                self.cells.unwrap_or_default().row,
+                IndexRange::new(to, to + length),
+            ))
+        }
+    }
+
     pub fn is_cell_selected(&self, row: usize, column: usize) -> bool {
         if let Some(rect) = self.cells {
             rect.contains(row, column)
@@ -297,6 +333,11 @@ impl IndexRange {
         }
     }
 
+    pub fn length(&self) -> usize {
+        let sorted = self.sorted();
+        return sorted.end - sorted.start;
+    }
+
     pub fn contains(&self, index: usize) -> bool {
         let sorted = self.sorted();
         index >= sorted.start && index <= sorted.end
@@ -345,4 +386,9 @@ fn get_group_columns(users: &[User]) -> Vec<GroupColumn> {
         .into_iter()
         .map(|g| GroupColumn::new(g.clone(), g.clone()))
         .collect()
+}
+
+fn reorder_elements<T, R: RangeBounds<usize>>(vec: &mut Vec<T>, range: R, insertion_index: usize) {
+    let elements: Vec<T> = vec.drain(range).collect();
+    vec.splice(insertion_index..insertion_index, elements);
 }
