@@ -1,10 +1,11 @@
 use dioxus::{html::input_data::MouseButton, prelude::*};
 
-use dioxus_primitives::context_menu::{
-    ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger,
-};
+use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
 
-use crate::{GroupColumn, Row, User};
+use crate::{
+    document_keydown::{use_document_keydown, KeyDownEvent},
+    GroupColumn, Row, User,
+};
 
 #[derive(Clone, Debug, Default)]
 struct ContextMenuState {
@@ -18,6 +19,13 @@ pub fn Table(users: Vec<User>) -> Element {
     let rows = use_signal(|| get_rows(users));
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
     let mut context_menu_state = use_context_provider(|| ContextMenuState::default());
+
+    use_document_keydown(move |event: KeyDownEvent| {
+        if event.key == "Escape" {
+            selection.write().clear();
+            context_menu_state.open.set(false);
+        }
+    });
 
     rsx! {
         ContextMenu { open: *context_menu_state.open.read(),
@@ -69,7 +77,6 @@ pub fn Table(users: Vec<User>) -> Element {
                                 value: column.access(row),
                             }
                         }
-                    
                     }
                 }
             }

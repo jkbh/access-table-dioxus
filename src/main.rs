@@ -1,5 +1,5 @@
 use dioxus::prelude::*;
-use dioxus_test::{create_mock_users, table::Table};
+use dioxus_test::{create_mock_users, filedropper::FileDropzone, table::Table};
 
 fn main() {
     dioxus::launch(App);
@@ -11,6 +11,9 @@ fn App() -> Element {
 
     rsx! {
         document::Stylesheet { href: asset!("/assets/tailwind.css") }
-        Table { users }
+        div { class: "w-screen h-screen p-1",
+            Table { users }
+                // FileDropzone { ondrop: |_| {} }
+        }
     }
 }

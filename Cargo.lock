@@ -1366,6 +1366,7 @@ dependencies = [
  "fake",
  "getrandom 0.3.3",
  "indexmap 2.9.0",
+ "serde",
  "web-time",
 ]
 
