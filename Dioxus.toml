@@ -2,6 +2,7 @@
 name = "dioxus-test"
 
 [web.app]
+base_path = "access-table-dioxus"
 
 # HTML title tag content
 title = "dioxus-test"

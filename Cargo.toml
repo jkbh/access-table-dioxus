@@ -15,7 +15,7 @@ indexmap = "2.9.0"
 serde = { version = "1.0.219", features = ["derive"] }
 
 [features]
-default = ["desktop"]
+default = ["web"]
 web = ["dioxus/web"]
 desktop = ["dioxus/desktop"]
 mobile = ["dioxus/mobile"]
