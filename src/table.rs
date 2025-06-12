@@ -118,7 +118,7 @@ fn GroupHeader(column_index: usize) -> Element {
 
     rsx! {
         th {
-            class: "wm-sideways-lr border-r w-8 border-b sticky z-1 top-0 px-1 text-left align-bottom",
+            class: "wm-sideways-lr border-r w-8 border-b sticky z-1 top-0 px-1 text-left",
             class: if selected() { "bg-gray-200" } else { "bg-white" },
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
