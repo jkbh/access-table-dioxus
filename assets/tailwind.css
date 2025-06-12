@@ -166,6 +166,9 @@
   .visible {
     visibility: visible;
   }
+  .static {
+    position: static;
+  }
   .sticky {
     position: sticky;
   }
@@ -184,11 +187,17 @@
   .z-1000 {
     z-index: 1000;
   }
+  .block {
+    display: block;
+  }
   .flex {
     display: flex;
   }
   .hidden {
     display: none;
+  }
+  .inline {
+    display: inline;
   }
   .table {
     display: table;
@@ -202,6 +211,9 @@
   .h-screen {
     height: 100vh;
   }
+  .max-h-fit {
+    max-height: fit-content;
+  }
   .w-8 {
     width: calc(var(--spacing) * 8);
   }
@@ -210,6 +222,9 @@
   }
   .w-screen {
     width: 100vw;
+  }
+  .max-w-fit {
+    max-width: fit-content;
   }
   .min-w-8 {
     min-width: calc(var(--spacing) * 8);
@@ -225,11 +240,20 @@
   .transform {
     transform: var(--tw-rotate-x,) var(--tw-rotate-y,) var(--tw-rotate-z,) var(--tw-skew-x,) var(--tw-skew-y,);
   }
+  .resize {
+    resize: both;
+  }
   .items-center {
     align-items: center;
   }
   .justify-center {
     justify-content: center;
+  }
+  .overflow-auto {
+    overflow: auto;
+  }
+  .overscroll-none {
+    overscroll-behavior: none;
   }
   .rounded {
     border-radius: 0.25rem;

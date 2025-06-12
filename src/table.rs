@@ -1,19 +1,20 @@
-use std::ops::{Range, RangeBounds};
+use std::ops::RangeBounds;
 
-use dioxus::{html::input_data::MouseButton, prelude::*};
+use dioxus::{
+    desktop::{
+        tao::{
+            event::{ElementState, RawKeyEvent},
+            keyboard::KeyCode as TaoKeyCode,
+        },
+        use_global_shortcut,
+    },
+    html::input_data::MouseButton,
+    prelude::*,
+};
 
 use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
 
-use crate::{
-    document_keydown::{use_document_keydown, KeyDownEvent},
-    GroupColumn, Row, User,
-};
-
-#[derive(Clone, Debug, Default)]
-struct ContextMenuState {
-    open: Signal<bool>,
-    position: Signal<(f64, f64)>,
-}
+use crate::{document_keydown::use_key_event, GroupColumn, Row, User};
 
 #[component]
 pub fn Table(users: Vec<User>) -> Element {
@@ -22,15 +23,15 @@ pub fn Table(users: Vec<User>) -> Element {
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
     let mut context_menu_state = use_context_provider(|| ContextMenuState::default());
 
-    use_document_keydown(move |event: KeyDownEvent| {
-        if event.key == "Escape" {
+    use_key_event(move |event: &RawKeyEvent| {
+        if event.physical_key == TaoKeyCode::Escape && event.state == ElementState::Released {
             selection.write().clear();
             context_menu_state.open.set(false);
         }
     });
 
     rsx! {
-        ContextMenu { open: *context_menu_state.open.read(),
+        ContextMenu { open: (context_menu_state.open)(),
             ContextMenuContent {
                 class: "z-1000 p-3 bg-white border rounded shadow-lg",
                 left: format!("{}px", context_menu_state.position.read().0),
@@ -45,40 +46,37 @@ pub fn Table(users: Vec<User>) -> Element {
                 }
             }
         }
-        table {
-            class: "whitespace-nowrap border-separate border-spacing-0",
-            onmouseup: move |_| {
-                selection.write().state = DragState::Idle;
-            },
-            onkeydown: move |evt: KeyboardEvent| {
-                if evt.key() == Key::Escape {
-                    selection.write().clear();
-                }
-            },
-            oncontextmenu: move |evt| {
-                evt.prevent_default();
-                context_menu_state.position.set(evt.client_coordinates().to_tuple());
-                context_menu_state.open.set(true);
-            },
-            thead {
-                tr {
-                    th { class: "sticky left-0 top-0 bg-white z-3 text-left align-bottom px-1 border-r border-b",
-                        "Name"
-                    }
-                    for (column_index , _) in group_columns.read().iter().enumerate() {
-                        GroupHeader { column_index }
-                    }
-                }
-            }
-            tbody {
-                for (row_index , row) in rows.read().iter().enumerate() {
+        div { class: "border rounded overscroll-none w-full h-full max-w-fit max-h-fit overflow-auto",
+            table {
+                class: "whitespace-nowrap border-separate border-spacing-0",
+                onmouseup: move |_| {
+                    selection.write().state = DragState::Idle;
+                },
+                oncontextmenu: move |evt| {
+                    evt.prevent_default();
+                    context_menu_state.position.set(evt.client_coordinates().to_tuple());
+                    context_menu_state.open.set(true);
+                },
+                thead {
                     tr {
-                        RowHeader { row_index, "{row.user.name}" }
-                        for (column_index , column) in group_columns.read().iter().enumerate() {
-                            GroupCell {
-                                row_index,
-                                column_index,
-                                value: column.access(row),
+                        th { class: "sticky left-0 top-0 bg-white z-3 text-left align-bottom px-1 border-r border-b",
+                            "Name"
+                        }
+                        for (column_index , _) in group_columns.read().iter().enumerate() {
+                            GroupHeader { column_index }
+                        }
+                    }
+                }
+                tbody {
+                    for (row_index , row) in rows.read().iter().enumerate() {
+                        tr {
+                            RowHeader { row_index, "{row.user.name}" }
+                            for (column_index , column) in group_columns.read().iter().enumerate() {
+                                GroupCell {
+                                    row_index,
+                                    column_index,
+                                    value: column.access(row),
+                                }
                             }
                         }
                     }
@@ -117,13 +115,13 @@ fn RowHeader(row_index: usize, children: Element) -> Element {
 
 #[component]
 fn GroupHeader(column_index: usize) -> Element {
-    let mut group_columns = use_context::<Signal<Vec<GroupColumn>>>();
-    let mut selection = use_context::<Signal<Selection>>();
+    let mut group_columns: Signal<Vec<GroupColumn>> = use_context();
+    let mut selection: Signal<Selection> = use_context();
     let selected = use_memo(move || selection().is_column_selected(column_index));
 
     rsx! {
         th {
-            class: "wm-sideways-lr border-r w-8 border-b sticky z-1 top-0 px-1 text-left",
+            class: "wm-sideways-lr border-r w-8 border-b sticky z-1 top-0 px-1 text-left align-bottom",
             class: if selected() { "bg-gray-200" } else { "bg-white" },
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
@@ -188,6 +186,12 @@ fn GroupCell(row_index: usize, column_index: usize, value: bool) -> Element {
             },
         }
     }
+}
+
+#[derive(Clone, Debug, Default)]
+struct ContextMenuState {
+    open: Signal<bool>,
+    position: Signal<(f64, f64)>,
 }
 
 #[derive(Clone, Copy, PartialEq)]
