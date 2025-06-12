@@ -1,12 +1,9 @@
 use std::ops::RangeBounds;
 
 use dioxus::{
-    desktop::{
-        tao::{
-            event::{ElementState, RawKeyEvent},
-            keyboard::KeyCode as TaoKeyCode,
-        },
-        use_global_shortcut,
+    desktop::tao::{
+        event::{ElementState, RawKeyEvent},
+        keyboard::KeyCode as TaoKeyCode,
     },
     html::input_data::MouseButton,
     prelude::*,

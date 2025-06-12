@@ -1,8 +1,4 @@
-use dioxus::{
-    document::eval,
-    html::{FileEngine, HasFileData},
-    prelude::*,
-};
+use dioxus::{document::eval, html::HasFileData, prelude::*};
 
 #[component]
 pub fn FileDropzone(ondrop: Callback<DragEvent>) -> Element {

@@ -1,5 +1,5 @@
-use dioxus::{desktop, prelude::*};
-use dioxus_test::{create_mock_users, filedropper::FileDropzone, table::Table};
+use dioxus::prelude::*;
+use dioxus_test::{create_mock_users, table::Table};
 
 fn main() {
     dioxus::launch(App);
