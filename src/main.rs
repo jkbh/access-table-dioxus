@@ -1,5 +1,9 @@
+use crate::{components::Table, user::create_mock_users};
 use dioxus::prelude::*;
-use dioxus_test::{create_mock_users, table::Table};
+
+mod components;
+mod user;
+mod utils;
 
 fn main() {
     dioxus::launch(App);

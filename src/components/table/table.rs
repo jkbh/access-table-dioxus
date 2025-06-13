@@ -9,9 +9,11 @@ use dioxus::{
     prelude::*,
 };
 
-use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
+use super::selection::{DragState, IndexRange, Selection};
+use crate::user::User;
+use crate::utils::use_key_event;
 
-use crate::{document_keydown::use_key_event, GroupColumn, Row, User};
+use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
 
 #[component]
 pub fn Table(users: Vec<User>) -> Element {
@@ -191,183 +193,6 @@ struct ContextMenuState {
     position: Signal<(f64, f64)>,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-enum DragState {
-    Idle,
-    Cell,
-    Row,
-    Column,
-}
-
-impl Default for DragState {
-    fn default() -> Self {
-        DragState::Idle
-    }
-}
-
-#[derive(Default, Clone)]
-struct Selection {
-    cells: Option<IndexRect>,
-    rows: Option<IndexRange>,
-    columns: Option<IndexRange>,
-    state: DragState,
-}
-
-impl Selection {
-    pub fn start_cell_selection(&mut self, row: usize, column: usize) {
-        self.clear();
-        self.cells = Some(IndexRect::new(
-            IndexRange::new(row, row),
-            IndexRange::new(column, column),
-        ));
-    }
-
-    pub fn update_cell_selection(&mut self, row: usize, column: usize) {
-        if let Some(rect) = &mut self.cells {
-            rect.row.end = row;
-            rect.column.end = column;
-        } else {
-            self.start_cell_selection(row, column);
-        }
-    }
-
-    pub fn start_row_selection(&mut self, row: usize) {
-        self.clear();
-        self.rows = Some(IndexRange::new(row, row));
-        self.cells = Some(IndexRect::new(
-            IndexRange::new(row, row),
-            IndexRange::new(0, usize::MAX),
-        ));
-    }
-
-    pub fn update_row_selection(&mut self, row: usize) {
-        if let Some(range) = &mut self.rows {
-            range.end = row;
-            if let Some(rect) = &mut self.cells {
-                rect.row.end = row;
-            }
-        } else {
-            self.start_row_selection(row);
-        }
-    }
-
-    pub fn start_column_selection(&mut self, column: usize) {
-        self.clear();
-        self.columns = Some(IndexRange::new(column, column));
-        self.cells = Some(IndexRect::new(
-            IndexRange::new(0, usize::MAX),
-            IndexRange::new(column, column),
-        ));
-    }
-
-    pub fn update_column_selection(&mut self, column: usize) {
-        if let Some(range) = &mut self.columns {
-            range.end = column;
-            if let Some(rect) = &mut self.cells {
-                rect.column.end = column;
-            }
-        } else {
-            self.start_column_selection(column);
-        }
-    }
-
-    pub fn shift_column_selection_to(&mut self, to: usize) {
-        if let Some(range) = &mut self.columns {
-            let length = range.length();
-            range.start = to;
-            range.end = to + length;
-
-            self.cells = Some(IndexRect::new(
-                self.cells.unwrap_or_default().row,
-                IndexRange::new(to, to + length),
-            ))
-        }
-    }
-
-    pub fn is_cell_selected(&self, row: usize, column: usize) -> bool {
-        if let Some(rect) = self.cells {
-            rect.contains(row, column)
-        } else {
-            false
-        }
-    }
-
-    pub fn is_row_selected(&self, row: usize) -> bool {
-        if let Some(range) = self.rows {
-            range.contains(row)
-        } else {
-            false
-        }
-    }
-
-    pub fn is_column_selected(&self, column: usize) -> bool {
-        if let Some(range) = self.columns {
-            range.contains(column)
-        } else {
-            false
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.cells = None;
-        self.rows = None;
-        self.columns = None;
-        self.state = DragState::Idle;
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Default, Debug)]
-pub struct IndexRange {
-    pub start: usize,
-    pub end: usize,
-}
-
-impl IndexRange {
-    pub fn new(start: usize, end: usize) -> Self {
-        Self { start, end }
-    }
-
-    pub fn sorted(&self) -> IndexRange {
-        IndexRange {
-            start: self.start.min(self.end),
-            end: self.start.max(self.end),
-        }
-    }
-
-    pub fn length(&self) -> usize {
-        let sorted = self.sorted();
-        return sorted.end - sorted.start;
-    }
-
-    pub fn contains(&self, index: usize) -> bool {
-        let sorted = self.sorted();
-        index >= sorted.start && index <= sorted.end
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Default, Debug)]
-pub struct IndexRect {
-    pub row: IndexRange,
-    pub column: IndexRange,
-}
-
-impl IndexRect {
-    pub fn new(row: IndexRange, column: IndexRange) -> Self {
-        Self { row, column }
-    }
-
-    pub fn sorted(&self) -> Self {
-        Self {
-            row: self.row.sorted(),
-            column: self.column.sorted(),
-        }
-    }
-
-    pub fn contains(&self, row: usize, column: usize) -> bool {
-        self.row.contains(row) && self.column.contains(column)
-    }
-}
-
 fn get_rows(users: Vec<User>) -> Vec<Row> {
     users
         .into_iter()
@@ -392,4 +217,47 @@ fn get_group_columns(users: &[User]) -> Vec<GroupColumn> {
 fn reorder_elements<T, R: RangeBounds<usize>>(vec: &mut Vec<T>, range: R, insertion_index: usize) {
     let elements: Vec<T> = vec.drain(range).collect();
     vec.splice(insertion_index..insertion_index, elements);
+}
+
+#[allow(unused)]
+#[derive(Debug, Clone)]
+pub struct Row {
+    pub id: String,
+    pub user: User,
+}
+
+#[allow(unused)]
+pub struct PropertyColumn {
+    pub id: String,
+    pub property: String,
+}
+
+#[allow(unused)]
+impl PropertyColumn {
+    pub fn new(id: String, property: String) -> Self {
+        Self { id, property }
+    }
+
+    pub fn access(&self, row: &Row) -> String {
+        row.user
+            .properties
+            .get(&self.id)
+            .cloned()
+            .unwrap_or_default()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct GroupColumn {
+    pub id: String,
+    pub group: String,
+}
+
+impl GroupColumn {
+    pub fn new(id: String, group: String) -> Self {
+        Self { id, group }
+    }
+    pub fn access(&self, row: &Row) -> bool {
+        row.user.groups.get(&self.id).cloned().unwrap_or_default()
+    }
 }

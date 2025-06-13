@@ -1,16 +1,7 @@
 use fake::Fake;
 use indexmap::IndexMap;
 
-pub mod document_keydown;
-pub mod filedropper;
-pub mod table;
-
-pub struct Row {
-    pub id: String,
-    pub user: User,
-}
-
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct User {
     pub id: String,
     pub name: String,
@@ -48,38 +39,4 @@ pub fn create_mock_users(n_users: usize, n_groups: usize) -> Vec<User> {
                 .collect(),
         })
         .collect()
-}
-
-pub struct PropertyColumn {
-    pub id: String,
-    pub property: String,
-}
-
-impl PropertyColumn {
-    pub fn new(id: String, property: String) -> Self {
-        Self { id, property }
-    }
-
-    pub fn access(&self, row: &Row) -> String {
-        row.user
-            .properties
-            .get(&self.id)
-            .cloned()
-            .unwrap_or_default()
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct GroupColumn {
-    pub id: String,
-    pub group: String,
-}
-
-impl GroupColumn {
-    pub fn new(id: String, group: String) -> Self {
-        Self { id, group }
-    }
-    pub fn access(&self, row: &Row) -> bool {
-        row.user.groups.get(&self.id).cloned().unwrap_or_default()
-    }
 }
