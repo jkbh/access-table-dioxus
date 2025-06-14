@@ -1,4 +1,4 @@
-use crate::{components::Table, user::create_mock_users};
+use crate::{components::table::Table, user::create_mock_users};
 use dioxus::prelude::*;
 
 mod components;

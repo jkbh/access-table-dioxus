@@ -9,11 +9,13 @@ use dioxus::{
     prelude::*,
 };
 
-use super::selection::{DragState, IndexRange, Selection};
 use crate::user::User;
 use crate::utils::use_key_event;
-
 use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
+
+use selection::{DragState, IndexRange, Selection};
+
+mod selection;
 
 #[component]
 pub fn Table(users: Vec<User>) -> Element {
