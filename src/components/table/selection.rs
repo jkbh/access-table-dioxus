@@ -1,15 +1,10 @@
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Default)]
 pub enum DragState {
+    #[default]
     Idle,
     Cell,
     Row,
     Column,
-}
-
-impl Default for DragState {
-    fn default() -> Self {
-        DragState::Idle
-    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -143,7 +138,7 @@ impl IndexRange {
 
     pub fn length(&self) -> usize {
         let sorted = self.sorted();
-        return sorted.end - sorted.start;
+        sorted.end - sorted.start
     }
 
     pub fn contains(&self, index: usize) -> bool {

@@ -20,7 +20,7 @@ pub fn Table(users: Vec<User>) -> Element {
     let group_columns = use_context_provider(|| Signal::new(get_group_columns(&users)));
     let rows = use_signal(|| get_rows(users));
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
-    let mut context_menu_state = use_context_provider(|| ContextMenuState::default());
+    let mut context_menu_state = use_context_provider(ContextMenuState::default);
 
     use_key_event(move |event: &RawKeyEvent| {
         if event.physical_key == TaoKeyCode::Escape && event.state == ElementState::Released {
