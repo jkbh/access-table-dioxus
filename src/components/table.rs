@@ -13,14 +13,14 @@ use crate::user::User;
 use crate::utils::use_key_event;
 use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
 
-use selection::{DragState, IndexRange, Selection};
+use selection::{Selection, SelectionType, IndexRange};
 
 mod selection;
 
 #[component]
 pub fn Table(users: Vec<User>) -> Element {
     let group_columns = use_context_provider(|| Signal::new(get_group_columns(&users)));
-    let rows = use_signal(|| get_rows(users));
+    let mut rows = use_context_provider(|| Signal::new(get_rows(users)));
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
     let mut context_menu_state = use_context_provider(ContextMenuState::default);
 
@@ -51,7 +51,7 @@ pub fn Table(users: Vec<User>) -> Element {
             table {
                 class: "whitespace-nowrap border-separate border-spacing-0",
                 onmouseup: move |_| {
-                    selection.write().state = DragState::Idle;
+                    selection.write().finish_drag();
                 },
                 oncontextmenu: move |evt| {
                     evt.prevent_default();
@@ -71,7 +71,7 @@ pub fn Table(users: Vec<User>) -> Element {
                 tbody {
                     for (row_index , row) in rows.read().iter().enumerate() {
                         tr {
-                            RowHeader { row_index, "{row.user.name}" }
+                            RowHeader { row_index, rows, "{row.user.name}" }
                             for (column_index , column) in group_columns.read().iter().enumerate() {
                                 GroupCell {
                                     row_index,
@@ -88,7 +88,7 @@ pub fn Table(users: Vec<User>) -> Element {
 }
 
 #[component]
-fn RowHeader(row_index: usize, children: Element) -> Element {
+fn RowHeader(row_index: usize, rows: Signal<Vec<Row>>, children: Element) -> Element {
     let mut selection = use_context::<Signal<Selection>>();
     let selected = use_memo(move || selection().is_row_selected(row_index));
 
@@ -99,14 +99,37 @@ fn RowHeader(row_index: usize, children: Element) -> Element {
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
                     evt.prevent_default();
-                    let mut selection = selection.write();
-                    selection.start_row_selection(row_index);
-                    selection.state = DragState::Row;
+                    selection.write().start_row_selection(row_index);
                 }
             },
             onmouseenter: move |_| {
-                if selection().state == DragState::Row {
+                if selection().is_dragging_rows() {
                     selection.write().update_row_selection(row_index);
+                }
+            },
+            oncontextmenu: move |evt: MouseEvent| {
+                evt.prevent_default();
+                evt.stop_propagation();
+                let mut selection = selection.write();
+                if let Some(SelectionType::Rows(range)) = &selection.current {
+                    let IndexRange { start, end } = range.sorted();
+                    if range.contains(row_index) {
+                        return;
+                    }
+                    let insertion_index = if row_index > end {
+                        row_index - range.length()
+                    } else {
+                        row_index
+                    };
+                    let mut rows_vec = rows.write();
+                    reorder_elements(&mut rows_vec, start..=end, insertion_index);
+                    
+                    // Update selection to track moved rows
+                    let length = range.length();
+                    if let Some(SelectionType::Rows(range)) = &mut selection.current {
+                        range.start = insertion_index;
+                        range.end = insertion_index + length - 1;
+                    }
                 }
             },
             {children}
@@ -127,13 +150,11 @@ fn GroupHeader(column_index: usize) -> Element {
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
                     evt.prevent_default();
-                    let mut selection = selection.write();
-                    selection.start_column_selection(column_index);
-                    selection.state = DragState::Column;
+                    selection.write().start_column_selection(column_index);
                 }
             },
             onmouseenter: move |_| {
-                if selection().state == DragState::Column {
+                if selection().is_dragging_columns() {
                     selection.write().update_column_selection(column_index);
                 }
             },
@@ -141,7 +162,7 @@ fn GroupHeader(column_index: usize) -> Element {
                 evt.prevent_default();
                 evt.stop_propagation();
                 let mut selection = selection.write();
-                if let Some(range) = selection.columns {
+                if let Some(range) = selection.get_column_range() {
                     let IndexRange { start, end } = range.sorted();
                     if range.contains(column_index) {
                         return;
@@ -175,13 +196,11 @@ fn GroupCell(row_index: usize, column_index: usize, value: bool) -> Element {
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
                     evt.prevent_default();
-                    let mut selection = selection.write();
-                    selection.start_cell_selection(row_index, column_index);
-                    selection.state = DragState::Cell;
+                    selection.write().start_cell_selection(row_index, column_index);
                 }
             },
             onmouseenter: move |_| {
-                if selection().state == DragState::Cell {
+                if selection().is_dragging_cells() {
                     selection.write().update_cell_selection(row_index, column_index);
                 }
             },
