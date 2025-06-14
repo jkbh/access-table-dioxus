@@ -71,7 +71,7 @@ pub fn Table(users: Vec<User>) -> Element {
                 tbody {
                     for (row_index , row) in rows.read().iter().enumerate() {
                         tr {
-                            RowHeader { row_index, rows, "{row.user.name}" }
+                            RowHeader { row_index, "{row.user.name}" }
                             for (column_index , column) in group_columns.read().iter().enumerate() {
                                 GroupCell {
                                     row_index,
@@ -88,8 +88,9 @@ pub fn Table(users: Vec<User>) -> Element {
 }
 
 #[component]
-fn RowHeader(row_index: usize, rows: Signal<Vec<Row>>, children: Element) -> Element {
+fn RowHeader(row_index: usize, children: Element) -> Element {
     let mut selection = use_context::<Signal<Selection>>();
+    let mut rows = use_context::<Signal<Vec<Row>>>();
     let selected = use_memo(move || selection().is_row_selected(row_index));
 
     rsx! {
