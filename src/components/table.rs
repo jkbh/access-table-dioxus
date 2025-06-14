@@ -22,7 +22,7 @@ mod selection;
 #[component]
 pub fn Table(users: Vec<User>) -> Element {
     let group_columns = use_context_provider(|| Signal::new(get_group_columns(&users)));
-    let mut rows = use_context_provider(|| Signal::new(get_rows(users)));
+    let rows = use_context_provider(|| Signal::new(get_rows(users)));
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
 
     use_key_event(move |event: &RawKeyEvent| {
