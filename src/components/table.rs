@@ -11,9 +11,11 @@ use dioxus::{
 
 use crate::user::User;
 use crate::utils::use_key_event;
-use dioxus_primitives::context_menu::{ContextMenu, ContextMenuContent, ContextMenuItem};
+use dioxus_primitives::context_menu::{
+    ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger,
+};
 
-use selection::{Selection, SelectionType, IndexRange};
+use selection::{IndexRange, Selection, SelectionType};
 
 mod selection;
 
@@ -22,21 +24,50 @@ pub fn Table(users: Vec<User>) -> Element {
     let group_columns = use_context_provider(|| Signal::new(get_group_columns(&users)));
     let mut rows = use_context_provider(|| Signal::new(get_rows(users)));
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
-    let mut context_menu_state = use_context_provider(ContextMenuState::default);
 
     use_key_event(move |event: &RawKeyEvent| {
         if event.physical_key == TaoKeyCode::Escape && event.state == ElementState::Released {
             selection.write().clear();
-            context_menu_state.open.set(false);
         }
     });
 
     rsx! {
-        ContextMenu { open: (context_menu_state.open)(),
-            ContextMenuContent {
-                class: "z-1000 p-3 bg-white border rounded shadow-lg",
-                left: format!("{}px", context_menu_state.position.read().0),
-                top: format!("{}px", context_menu_state.position.read().1),
+        ContextMenu {
+            ContextMenuTrigger {
+                div { class: "border rounded overscroll-none w-full h-full max-w-fit max-h-fit overflow-auto",
+                    table {
+                        class: "whitespace-nowrap border-separate border-spacing-0",
+                        onmouseup: move |_| {
+                            selection.write().finish_drag();
+                        },
+                        thead {
+                            tr {
+                                th { class: "sticky left-0 top-0 bg-white z-3 text-left align-bottom px-1 border-r border-b",
+                                    "Name"
+                                }
+                                for (column_index , _) in group_columns.read().iter().enumerate() {
+                                    GroupHeader { column_index }
+                                }
+                            }
+                        }
+                        tbody {
+                            for (row_index , row) in rows.read().iter().enumerate() {
+                                tr {
+                                    RowHeader { row_index, "{row.user.name}" }
+                                    for (column_index , column) in group_columns.read().iter().enumerate() {
+                                        GroupCell {
+                                            row_index,
+                                            column_index,
+                                            value: column.access(row),
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            ContextMenuContent { class: "z-1000 p-3 bg-white border rounded shadow-lg",
                 ContextMenuItem {
                     index: 0usize,
                     value: "0",
@@ -44,43 +75,6 @@ pub fn Table(users: Vec<User>) -> Element {
                         println!("Selected: {}", value);
                     },
                     "Move element"
-                }
-            }
-        }
-        div { class: "border rounded overscroll-none w-full h-full max-w-fit max-h-fit overflow-auto",
-            table {
-                class: "whitespace-nowrap border-separate border-spacing-0",
-                onmouseup: move |_| {
-                    selection.write().finish_drag();
-                },
-                oncontextmenu: move |evt| {
-                    evt.prevent_default();
-                    context_menu_state.position.set(evt.client_coordinates().to_tuple());
-                    context_menu_state.open.set(true);
-                },
-                thead {
-                    tr {
-                        th { class: "sticky left-0 top-0 bg-white z-3 text-left align-bottom px-1 border-r border-b",
-                            "Name"
-                        }
-                        for (column_index , _) in group_columns.read().iter().enumerate() {
-                            GroupHeader { column_index }
-                        }
-                    }
-                }
-                tbody {
-                    for (row_index , row) in rows.read().iter().enumerate() {
-                        tr {
-                            RowHeader { row_index, "{row.user.name}" }
-                            for (column_index , column) in group_columns.read().iter().enumerate() {
-                                GroupCell {
-                                    row_index,
-                                    column_index,
-                                    value: column.access(row),
-                                }
-                            }
-                        }
-                    }
                 }
             }
         }
@@ -124,8 +118,6 @@ fn RowHeader(row_index: usize, children: Element) -> Element {
                     };
                     let mut rows_vec = rows.write();
                     reorder_elements(&mut rows_vec, start..=end, insertion_index);
-                    
-                    // Update selection to track moved rows
                     let length = range.length();
                     if let Some(SelectionType::Rows(range)) = &mut selection.current {
                         range.start = insertion_index;
@@ -207,12 +199,6 @@ fn GroupCell(row_index: usize, column_index: usize, value: bool) -> Element {
             },
         }
     }
-}
-
-#[derive(Clone, Debug, Default)]
-struct ContextMenuState {
-    open: Signal<bool>,
-    position: Signal<(f64, f64)>,
 }
 
 fn get_rows(users: Vec<User>) -> Vec<Row> {
