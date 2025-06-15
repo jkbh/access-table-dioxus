@@ -9,7 +9,7 @@ pub enum SelectionType {
 pub enum DragState {
     #[default]
     Idle,
-    Dragging(SelectionType),
+    Dragging,
 }
 
 #[derive(Debug, Default, Clone, PartialEq)]
@@ -22,46 +22,37 @@ impl Selection {
     pub fn start_cell_selection(&mut self, row: usize, column: usize) {
         let range = CellRange::new(row, column, row, column);
         self.current = Some(SelectionType::Cells(range));
-        self.drag_state = DragState::Dragging(SelectionType::Cells(range));
+        self.drag_state = DragState::Dragging;
     }
 
     pub fn update_cell_selection(&mut self, row: usize, column: usize) {
         if let Some(SelectionType::Cells(range)) = &mut self.current {
             range.end_row = row;
             range.end_column = column;
-            if let DragState::Dragging(SelectionType::Cells(drag_range)) = &mut self.drag_state {
-                *drag_range = *range;
-            }
         }
     }
 
     pub fn start_row_selection(&mut self, row: usize) {
         let range = IndexRange::new(row, row);
         self.current = Some(SelectionType::Rows(range));
-        self.drag_state = DragState::Dragging(SelectionType::Rows(range));
+        self.drag_state = DragState::Dragging;
     }
 
     pub fn update_row_selection(&mut self, row: usize) {
         if let Some(SelectionType::Rows(range)) = &mut self.current {
             range.end = row;
-            if let DragState::Dragging(SelectionType::Rows(drag_range)) = &mut self.drag_state {
-                *drag_range = *range;
-            }
         }
     }
 
     pub fn start_column_selection(&mut self, column: usize) {
         let range = IndexRange::new(column, column);
         self.current = Some(SelectionType::Columns(range));
-        self.drag_state = DragState::Dragging(SelectionType::Columns(range));
+        self.drag_state = DragState::Dragging;
     }
 
     pub fn update_column_selection(&mut self, column: usize) {
         if let Some(SelectionType::Columns(range)) = &mut self.current {
             range.end = column;
-            if let DragState::Dragging(SelectionType::Columns(drag_range)) = &mut self.drag_state {
-                *drag_range = *range;
-            }
         }
     }
 
@@ -106,15 +97,15 @@ impl Selection {
     }
 
     pub fn is_dragging_rows(&self) -> bool {
-        matches!(self.drag_state, DragState::Dragging(SelectionType::Rows(_)))
+        matches!((&self.drag_state, &self.current), (DragState::Dragging, Some(SelectionType::Rows(_))))
     }
 
     pub fn is_dragging_columns(&self) -> bool {
-        matches!(self.drag_state, DragState::Dragging(SelectionType::Columns(_)))
+        matches!((&self.drag_state, &self.current), (DragState::Dragging, Some(SelectionType::Columns(_))))
     }
 
     pub fn is_dragging_cells(&self) -> bool {
-        matches!(self.drag_state, DragState::Dragging(SelectionType::Cells(_)))
+        matches!((&self.drag_state, &self.current), (DragState::Dragging, Some(SelectionType::Cells(_))))
     }
 
     pub fn clear(&mut self) {
