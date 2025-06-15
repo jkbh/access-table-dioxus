@@ -22,6 +22,6 @@ script = []
 script = []
 
 [bundle]
-identifier = "dioxus-test"
-publisher = "HB Software Sheesh"
+identifier = "RoleBuilder"
+publisher = "HB Software"
 icon = ["assets/icon.png"]
