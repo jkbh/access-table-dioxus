@@ -7,8 +7,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.7.0-alpha.1", features = ["desktop"] }
-dioxus-primitives = { git = "https://github.com/DioxusLabs/components.git" }
+dioxus = { version = "0.7.0-rc.3", features = ["desktop"] }
+dioxus-primitives = { git = "https://github.com/DioxusLabs/components", version = "0.0.1", default-features = false }
 fake = "4.3.0"
 getrandom = { version = "0.3", features = ["wasm_js"] }
 indexmap = "2.9.0"

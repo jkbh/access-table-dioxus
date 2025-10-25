@@ -1,6 +1,9 @@
 #![windows_subsystem = "windows"]
 
-use crate::{components::table::Table, user::create_mock_users};
+use crate::{
+    components::{filedropper::FileDropzone, table::Table},
+    user::create_mock_users,
+};
 use dioxus::prelude::*;
 
 mod components;
@@ -8,6 +11,7 @@ mod user;
 mod utils;
 
 static TAILWIND: Asset = asset!("/assets/tailwind.css");
+
 fn main() {
     dioxus::launch(App);
 }

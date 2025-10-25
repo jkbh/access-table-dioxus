@@ -11,10 +11,13 @@ pub fn FileDropzone(ondrop: Callback<DragEvent>) -> Element {
                 eval("document.getElementById('file_input').click()");
             },
             ondrop: |evt| {
+                dbg!(&evt);
                 evt.prevent_default();
-                dbg!(evt.files().unwrap().files());
             },
-            ondragenter: move |_| { is_over.set(true) },
+            ondragenter: move |_| {
+                is_over.set(true);
+                dbg!("hello");
+            },
             ondragexit: move |_| { is_over.set(false) },
             "Drop file or click to open dialog"
             input {

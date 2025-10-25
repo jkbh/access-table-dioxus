@@ -97,15 +97,24 @@ impl Selection {
     }
 
     pub fn is_dragging_rows(&self) -> bool {
-        matches!((&self.drag_state, &self.current), (DragState::Dragging, Some(SelectionType::Rows(_))))
+        matches!(
+            (&self.drag_state, &self.current),
+            (DragState::Dragging, Some(SelectionType::Rows(_)))
+        )
     }
 
     pub fn is_dragging_columns(&self) -> bool {
-        matches!((&self.drag_state, &self.current), (DragState::Dragging, Some(SelectionType::Columns(_))))
+        matches!(
+            (&self.drag_state, &self.current),
+            (DragState::Dragging, Some(SelectionType::Columns(_)))
+        )
     }
 
     pub fn is_dragging_cells(&self) -> bool {
-        matches!((&self.drag_state, &self.current), (DragState::Dragging, Some(SelectionType::Cells(_))))
+        matches!(
+            (&self.drag_state, &self.current),
+            (DragState::Dragging, Some(SelectionType::Cells(_)))
+        )
     }
 
     pub fn clear(&mut self) {
@@ -153,7 +162,12 @@ pub struct CellRange {
 
 impl CellRange {
     pub fn new(start_row: usize, start_column: usize, end_row: usize, end_column: usize) -> Self {
-        Self { start_row, start_column, end_row, end_column }
+        Self {
+            start_row,
+            start_column,
+            end_row,
+            end_column,
+        }
     }
 
     pub fn sorted(&self) -> CellRange {
@@ -167,7 +181,9 @@ impl CellRange {
 
     pub fn contains(&self, row: usize, column: usize) -> bool {
         let sorted = self.sorted();
-        row >= sorted.start_row && row <= sorted.end_row &&
-        column >= sorted.start_column && column <= sorted.end_column
+        row >= sorted.start_row
+            && row <= sorted.end_row
+            && column >= sorted.start_column
+            && column <= sorted.end_column
     }
 }

@@ -19,12 +19,69 @@ use selection::{IndexRange, Selection, SelectionType};
 
 mod selection;
 
+#[derive(Debug, Clone)]
+enum ContextMenuTarget {
+    Table,
+    RowHeader(usize),
+    ColumnHeader(String),
+    Cell(String, String),
+}
+
+impl ContextMenuTarget {
+    fn render(&self) -> Element {
+        match self {
+            ContextMenuTarget::RowHeader(row_index) => {
+                rsx! {
+                    ContextMenuItem {
+                        index: 0usize,
+                        value: "0",
+                        on_select: |value: String| {
+                            println!("Selected: {}", value);
+                        },
+                        "Row Menu {row_index}"
+                    }
+                }
+            }
+            _ => rsx! {
+                ContextMenuItem {
+                    index: 0usize,
+                    value: "0",
+                    on_select: |value: String| {
+                        println!("Selected: {}", value);
+                    },
+                    "Default Menu"
+                }
+            },
+        }
+    }
+}
+
+// let mut selection = selection.write();
+// if let Some(SelectionType::Rows(range)) = &selection.current {
+//     let IndexRange { start, end } = range.sorted();
+//     if range.contains(row_index) {
+//         return;
+//     }
+//     let insertion_index = if row_index > end {
+//         row_index - range.length()
+//     } else {
+//         row_index
+//     };
+//     let mut rows_vec = rows.write();
+//     reorder_elements(&mut rows_vec, start..=end, insertion_index);
+//     let length = range.length();
+//     if let Some(SelectionType::Rows(range)) = &mut selection.current {
+//         range.start = insertion_index;
+//         range.end = insertion_index + length - 1;
+//     }
+// }
+
 #[component]
 pub fn Table(users: Vec<User>) -> Element {
     let group_columns = use_context_provider(|| Signal::new(get_group_columns(&users)));
     let rows = use_context_provider(|| Signal::new(get_rows(users)));
     let mut selection = use_context_provider(|| Signal::new(Selection::default()));
-
+    let context_menu_target = use_context_provider(|| Signal::new(ContextMenuTarget::Table));
     use_key_event(move |event: &RawKeyEvent| {
         if event.physical_key == TaoKeyCode::Escape && event.state == ElementState::Released {
             selection.write().clear();
@@ -43,6 +100,7 @@ pub fn Table(users: Vec<User>) -> Element {
                         thead {
                             tr {
                                 th { class: "sticky left-0 top-0 bg-white z-3 text-left align-bottom px-1 border-r border-b",
+
                                     "Name"
                                 }
                                 for (column_index , _) in group_columns.read().iter().enumerate() {
@@ -68,14 +126,7 @@ pub fn Table(users: Vec<User>) -> Element {
                 }
             }
             ContextMenuContent { class: "z-1000 p-3 bg-white border rounded shadow-lg",
-                ContextMenuItem {
-                    index: 0usize,
-                    value: "0",
-                    on_select: |value: String| {
-                        println!("Selected: {}", value);
-                    },
-                    "Move element"
-                }
+                {context_menu_target.read().render()}
             }
         }
     }
@@ -87,10 +138,13 @@ fn RowHeader(row_index: usize, children: Element) -> Element {
     let mut rows = use_context::<Signal<Vec<Row>>>();
     let selected = use_memo(move || selection().is_row_selected(row_index));
 
+    let mut context_menu_target = use_context::<Signal<ContextMenuTarget>>();
+
     rsx! {
         th {
             class: "h-8 text-left px-1 border-r border-b sticky left-0 z-1",
             class: if selected() { "bg-gray-200" } else { "bg-white" },
+
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
                     evt.prevent_default();
@@ -103,27 +157,7 @@ fn RowHeader(row_index: usize, children: Element) -> Element {
                 }
             },
             oncontextmenu: move |evt: MouseEvent| {
-                evt.prevent_default();
-                evt.stop_propagation();
-                let mut selection = selection.write();
-                if let Some(SelectionType::Rows(range)) = &selection.current {
-                    let IndexRange { start, end } = range.sorted();
-                    if range.contains(row_index) {
-                        return;
-                    }
-                    let insertion_index = if row_index > end {
-                        row_index - range.length()
-                    } else {
-                        row_index
-                    };
-                    let mut rows_vec = rows.write();
-                    reorder_elements(&mut rows_vec, start..=end, insertion_index);
-                    let length = range.length();
-                    if let Some(SelectionType::Rows(range)) = &mut selection.current {
-                        range.start = insertion_index;
-                        range.end = insertion_index + length - 1;
-                    }
-                }
+                context_menu_target.set(ContextMenuTarget::RowHeader(row_index));
             },
             {children}
         }
@@ -183,9 +217,9 @@ fn GroupCell(row_index: usize, column_index: usize, value: bool) -> Element {
     rsx! {
         td {
             class: "min-w-8 h-8 border-r border-b",
-            class: if value && selected() { "bg-gray-500" },
-            class: if value { "bg-gray-400" },
-            class: if selected() { "bg-gray-200" },
+            class: if value && selected() { "bg-gray-400" },
+            class: if value { "bg-gray-200" },
+            class: if selected() { "bg-gray-300" },
             onmousedown: move |evt: MouseEvent| {
                 if let Some(MouseButton::Primary) = evt.trigger_button() {
                     evt.prevent_default();
